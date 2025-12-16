@@ -1,0 +1,60 @@
+{
+  "TT1RkyaXoSBZNPYsq6pBH9P4aR91HhJXES": {
+    "user_id": 7276481915,
+    "nickname": "яяя",
+    "description": null,
+    "balances": {
+      "TRX": {
+        "amount": "16.415807",
+        "contract_address": null,
+        "usd_value": null
+      },
+      "TOKEN_THxYWb": {
+        "amount": "0.138138",
+        "contract_address": "THxYWbzAgzQgQaYi9G4mjeL1tq1hdrZe55",
+        "usd_value": null
+      },
+      "USDT": {
+        "amount": "7119.000000",
+        "contract_address": "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
+        "usd_value": null
+      }
+    },
+    "total_usd_value": "0",
+    "last_checked": "2025-12-16T15:58:16.732592",
+    "last_balance_check": "2025-12-16T16:45:12.774045",
+    "last_transaction": null
+  },
+  "TPxA4tkptCvYX6MhqLKntbN8UbvwecnVPZ": {
+    "user_id": 6524181425,
+    "nickname": "1",
+    "description": null,
+    "balances": {
+      "TRX": {
+        "amount": "3183.557088",
+        "contract_address": null,
+        "usd_value": null
+      }
+    },
+    "total_usd_value": "0",
+    "last_checked": "2025-12-16T16:11:02.119261",
+    "last_balance_check": "2025-12-16T16:12:58.307209",
+    "last_transaction": null
+  },
+  "TVpHC1sgZAjR37KLUHi5g5yuLzsUeU19Sa": {
+    "user_id": 7276481915,
+    "nickname": "zz",
+    "description": null,
+    "balances": {
+      "TRX": {
+        "amount": "4.070005",
+        "contract_address": null,
+        "usd_value": null
+      }
+    },
+    "total_usd_value": "0",
+    "last_checked": "2025-12-16T16:38:04.395650",
+    "last_balance_check": "2025-12-16T16:45:14.287725",
+    "last_transaction": null
+  }
+}
