@@ -1,7 +1,122 @@
 {
+  "TFj2R8MdKCBNG52PoaxwdatiG1Cf5wCF2B": {
+    "user_id": 7229194724,
+    "nickname": "1",
+    "description": null,
+    "balances": {
+      "TRX": {
+        "amount": "44.887053",
+        "contract_address": null,
+        "usd_value": null
+      },
+      "TOKEN_THxYWb": {
+        "amount": "0.138138",
+        "contract_address": "THxYWbzAgzQgQaYi9G4mjeL1tq1hdrZe55",
+        "usd_value": null
+      }
+    },
+    "total_usd_value": "0",
+    "last_checked": "2025-12-17T16:58:08.296821",
+    "last_balance_check": "2025-12-17T17:16:55.473296",
+    "last_transaction": null
+  },
+  "TRbfpGA7uMY7VGjrLyBa3eVwEL5ErBxxzX": {
+    "user_id": 7229194724,
+    "nickname": "https://www.olx.ua/list/user/1enEyU/",
+    "description": "https://www.olx.ua/list/user/1enEyU/",
+    "balances": {
+      "TRX": {
+        "amount": "0.010001",
+        "contract_address": null,
+        "usd_value": null
+      },
+      "TOKEN_THxYWb": {
+        "amount": "0.138138",
+        "contract_address": "THxYWbzAgzQgQaYi9G4mjeL1tq1hdrZe55",
+        "usd_value": null
+      }
+    },
+    "total_usd_value": "0",
+    "last_checked": "2025-12-17T17:05:02.050988",
+    "last_balance_check": "2025-12-17T17:16:59.048839",
+    "last_transaction": null
+  },
+  "TLFbtDafBgHdW96AT2aCwnwiEe1fjjrtjR": {
+    "user_id": 7229194724,
+    "nickname": "https://www.olx.ua/d/obyavlenie/nova-norkova-shuba-talya-IDYHpOL.html",
+    "description": null,
+    "balances": {
+      "TRX": {
+        "amount": "3.052507",
+        "contract_address": null,
+        "usd_value": null
+      }
+    },
+    "total_usd_value": "0",
+    "last_checked": "2025-12-17T17:06:27.280845",
+    "last_balance_check": "2025-12-17T17:17:02.631824",
+    "last_transaction": null
+  },
+  "TM2ShqPURWjwSEP2AQS8Rqaa9CzMj2x5Wp": {
+    "user_id": 7229194724,
+    "nickname": "https://worldwheels1.olx.ua",
+    "description": null,
+    "balances": {
+      "TRX": {
+        "amount": "2.349037",
+        "contract_address": null,
+        "usd_value": null
+      },
+      "TOKEN_THxYWb": {
+        "amount": "0.138138",
+        "contract_address": "THxYWbzAgzQgQaYi9G4mjeL1tq1hdrZe55",
+        "usd_value": null
+      }
+    },
+    "total_usd_value": "0",
+    "last_checked": "2025-12-17T17:13:56.284919",
+    "last_balance_check": "2025-12-17T17:17:06.310453",
+    "last_transaction": "59d5ccf925ff3449b5160ac79e10ffa7b5a7d11f415008e19b7656ee55a9edca"
+  },
+  "TLHSaVzaTtxmLdxssQ9jZFgt5Mwm5g3R5w": {
+    "user_id": 7229194724,
+    "nickname": "https://www.olx.ua/list/user/l9rEx/",
+    "description": null,
+    "balances": {
+      "TRX": {
+        "amount": "3.537068",
+        "contract_address": null,
+        "usd_value": null
+      },
+      "TOKEN_THxYWb": {
+        "amount": "0.138138",
+        "contract_address": "THxYWbzAgzQgQaYi9G4mjeL1tq1hdrZe55",
+        "usd_value": null
+      },
+      "TOKEN_TUazYX": {
+        "amount": "8.666666",
+        "contract_address": "TUazYXMe7p9Yi1Kc8vQhovQbFp5UxipHHA",
+        "usd_value": null
+      },
+      "TOKEN_TXBcx5": {
+        "amount": "450000000000000.000000",
+        "contract_address": "TXBcx59eDVndV5upFQnTR2xdvqFd5reXET",
+        "usd_value": null
+      },
+      "USDT": {
+        "amount": "0.465550",
+        "contract_address": "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
+        "usd_value": null
+      }
+    },
+    "total_usd_value": "0",
+    "last_checked": "2025-12-17T17:13:58.739166",
+    "last_balance_check": "2025-12-17T17:17:10.355313",
+    "last_transaction": "ac975f105973b28f24ba33309397213c53f159a0588794b249c97245c5d7b28c"
+  },
   "TT1RkyaXoSBZNPYsq6pBH9P4aR91HhJXES": {
-    "user_id": 7276481915,
-    "nickname": "яяя",
+    "user_id": 7229194724,
+    "nickname": "1",
     "description": null,
     "balances": {
       "TRX": {
@@ -15,46 +130,35 @@
         "usd_value": null
       },
       "USDT": {
-        "amount": "7119.000000",
+        "amount": "7418.711600",
         "contract_address": "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
         "usd_value": null
       }
     },
     "total_usd_value": "0",
-    "last_checked": "2025-12-16T15:58:16.732592",
-    "last_balance_check": "2025-12-16T16:45:12.774045",
-    "last_transaction": null
-  },
-  "TPxA4tkptCvYX6MhqLKntbN8UbvwecnVPZ": {
-    "user_id": 6524181425,
-    "nickname": "1",
-    "description": null,
-    "balances": {
-      "TRX": {
-        "amount": "3183.557088",
-        "contract_address": null,
-        "usd_value": null
-      }
-    },
-    "total_usd_value": "0",
-    "last_checked": "2025-12-16T16:11:02.119261",
-    "last_balance_check": "2025-12-16T16:12:58.307209",
-    "last_transaction": null
+    "last_checked": "2025-12-17T17:14:50.203138",
+    "last_balance_check": "2025-12-17T17:17:14.139745",
+    "last_transaction": "abc74b3e92910bbde691660565c0c6e8aa86941fa99c415e7c168bdb1ad5f3ff"
   },
   "TVpHC1sgZAjR37KLUHi5g5yuLzsUeU19Sa": {
-    "user_id": 7276481915,
-    "nickname": "zz",
+    "user_id": 7229194724,
+    "nickname": "2",
     "description": null,
     "balances": {
       "TRX": {
         "amount": "4.070005",
         "contract_address": null,
         "usd_value": null
+      },
+      "USDT": {
+        "amount": "155.000000",
+        "contract_address": "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
+        "usd_value": null
       }
     },
     "total_usd_value": "0",
-    "last_checked": "2025-12-16T16:38:04.395650",
-    "last_balance_check": "2025-12-16T16:45:14.287725",
-    "last_transaction": null
+    "last_checked": "2025-12-17T17:15:06.997750",
+    "last_balance_check": "2025-12-17T17:17:17.569043",
+    "last_transaction": "90b155afcaab2040080351a47cf8f058c5a81cc8334692507e5c0b121c220f72"
   }
 }
