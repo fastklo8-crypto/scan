@@ -1,7 +1,7 @@
 {
   "TFj2R8MdKCBNG52PoaxwdatiG1Cf5wCF2B": {
     "user_id": 7229194724,
-    "nickname": "1",
+    "nickname": "https://www.olx.ua/list/user/sLCx4/",
     "description": null,
     "balances": {
       "TRX": {
@@ -16,14 +16,14 @@
       }
     },
     "total_usd_value": "0",
-    "last_checked": "2025-12-17T16:58:08.296821",
-    "last_balance_check": "2025-12-17T17:16:55.473296",
-    "last_transaction": null
+    "last_checked": "2025-12-19T18:06:36.498193",
+    "last_balance_check": "2025-12-19T18:06:37.308261",
+    "last_transaction": "dc7f23b8d536ee0348e721b11422cd461f784c431e9658160dd06988e40ef748"
   },
   "TRbfpGA7uMY7VGjrLyBa3eVwEL5ErBxxzX": {
     "user_id": 7229194724,
     "nickname": "https://www.olx.ua/list/user/1enEyU/",
-    "description": "https://www.olx.ua/list/user/1enEyU/",
+    "description": null,
     "balances": {
       "TRX": {
         "amount": "0.010001",
@@ -37,25 +37,30 @@
       }
     },
     "total_usd_value": "0",
-    "last_checked": "2025-12-17T17:05:02.050988",
-    "last_balance_check": "2025-12-17T17:16:59.048839",
-    "last_transaction": null
+    "last_checked": "2025-12-19T18:07:12.217071",
+    "last_balance_check": "2025-12-19T18:07:12.647632",
+    "last_transaction": "5745207ad6ba63a7b93553b6918951f92fcccf3dba105d6875528ce32a436f01"
   },
   "TLFbtDafBgHdW96AT2aCwnwiEe1fjjrtjR": {
     "user_id": 7229194724,
-    "nickname": "https://www.olx.ua/d/obyavlenie/nova-norkova-shuba-talya-IDYHpOL.html",
+    "nickname": "https://www.olx.ua/list/user/hxCgQ/",
     "description": null,
     "balances": {
       "TRX": {
-        "amount": "3.052507",
+        "amount": "4.070014",
         "contract_address": null,
+        "usd_value": null
+      },
+      "TOKEN_TF6f9y": {
+        "amount": "0.292292",
+        "contract_address": "TF6f9yCXxGSpySRGv59eTyzWGVtKCd8oa7",
         "usd_value": null
       }
     },
     "total_usd_value": "0",
-    "last_checked": "2025-12-17T17:06:27.280845",
-    "last_balance_check": "2025-12-17T17:17:02.631824",
-    "last_transaction": null
+    "last_checked": "2025-12-19T18:07:34.355801",
+    "last_balance_check": "2025-12-19T18:13:43.974409",
+    "last_transaction": "9ea0feb43d06ec8b511afe2cf459aeadcc10a2fbcc53f5b9e0c1ede2663f6ba1"
   },
   "TM2ShqPURWjwSEP2AQS8Rqaa9CzMj2x5Wp": {
     "user_id": 7229194724,
@@ -74,9 +79,29 @@
       }
     },
     "total_usd_value": "0",
-    "last_checked": "2025-12-17T17:13:56.284919",
-    "last_balance_check": "2025-12-17T17:17:06.310453",
+    "last_checked": "2025-12-19T18:08:01.248401",
+    "last_balance_check": "2025-12-19T18:08:01.744879",
     "last_transaction": "59d5ccf925ff3449b5160ac79e10ffa7b5a7d11f415008e19b7656ee55a9edca"
+  },
+  "0x3FB0C26f13d0334DA85D4922b3A8BCBC527Fab15": {
+    "user_id": 7229194724,
+    "nickname": "https://www.olx.ua/list/user/AMbyZ/",
+    "description": null,
+    "balances": {},
+    "total_usd_value": "0",
+    "last_checked": "2025-12-19T18:08:32.717541",
+    "last_balance_check": "2025-12-19T18:08:32.831964",
+    "last_transaction": null
+  },
+  "0x8b30f23bef444b25115cbefc44cfa293e0bfd4be": {
+    "user_id": 7229194724,
+    "nickname": "https://www.olx.ua/list/user/l9rEx/",
+    "description": null,
+    "balances": {},
+    "total_usd_value": "0",
+    "last_checked": "2025-12-19T18:08:57.455148",
+    "last_balance_check": "2025-12-19T18:08:57.552747",
+    "last_transaction": null
   },
   "TLHSaVzaTtxmLdxssQ9jZFgt5Mwm5g3R5w": {
     "user_id": 7229194724,
@@ -84,7 +109,7 @@
     "description": null,
     "balances": {
       "TRX": {
-        "amount": "3.537068",
+        "amount": "3.53707",
         "contract_address": null,
         "usd_value": null
       },
@@ -110,17 +135,17 @@
       }
     },
     "total_usd_value": "0",
-    "last_checked": "2025-12-17T17:13:58.739166",
-    "last_balance_check": "2025-12-17T17:17:10.355313",
-    "last_transaction": "ac975f105973b28f24ba33309397213c53f159a0588794b249c97245c5d7b28c"
+    "last_checked": "2025-12-19T18:09:13.030882",
+    "last_balance_check": "2025-12-19T23:16:01.573641",
+    "last_transaction": "9c07449c2b7117a5aff9e6f833f17d5f3767831ce9eafe8ba569448ff72ae4c5"
   },
   "TT1RkyaXoSBZNPYsq6pBH9P4aR91HhJXES": {
     "user_id": 7229194724,
-    "nickname": "1",
+    "nickname": "олх чтот",
     "description": null,
     "balances": {
       "TRX": {
-        "amount": "16.415807",
+        "amount": "6.082449",
         "contract_address": null,
         "usd_value": null
       },
@@ -130,19 +155,19 @@
         "usd_value": null
       },
       "USDT": {
-        "amount": "7418.711600",
+        "amount": "8350.000000",
         "contract_address": "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
         "usd_value": null
       }
     },
     "total_usd_value": "0",
-    "last_checked": "2025-12-17T17:14:50.203138",
-    "last_balance_check": "2025-12-17T17:17:14.139745",
-    "last_transaction": "abc74b3e92910bbde691660565c0c6e8aa86941fa99c415e7c168bdb1ad5f3ff"
+    "last_checked": "2025-12-19T22:06:08.507313",
+    "last_balance_check": "2025-12-19T23:16:03.361857",
+    "last_transaction": "d43ead190713e4f0ed13dc1b19a46bc4d63c6da7810b8762d1aaff23eb5e04e1"
   },
   "TVpHC1sgZAjR37KLUHi5g5yuLzsUeU19Sa": {
     "user_id": 7229194724,
-    "nickname": "2",
+    "nickname": "олх вроде",
     "description": null,
     "balances": {
       "TRX": {
@@ -157,8 +182,81 @@
       }
     },
     "total_usd_value": "0",
-    "last_checked": "2025-12-17T17:15:06.997750",
-    "last_balance_check": "2025-12-17T17:17:17.569043",
+    "last_checked": "2025-12-19T18:12:43.328296",
+    "last_balance_check": "2025-12-19T18:12:43.798991",
     "last_transaction": "90b155afcaab2040080351a47cf8f058c5a81cc8334692507e5c0b121c220f72"
+  },
+  "TUko9zATgwtiH6741LCTxvJumjSirWtTJR": {
+    "user_id": 7229194724,
+    "nickname": "https://www.olx.ua/list/user/177Bl/",
+    "description": null,
+    "balances": {
+      "TRX": {
+        "amount": "3.677624",
+        "contract_address": null,
+        "usd_value": null
+      },
+      "USDT": {
+        "amount": "48.496732",
+        "contract_address": "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
+        "usd_value": null
+      }
+    },
+    "total_usd_value": "0",
+    "last_checked": "2025-12-19T22:40:54.804422",
+    "last_balance_check": "2025-12-19T22:40:55.314789",
+    "last_transaction": null
+  },
+  "TDGJJGZXbHe4Z21Qe6XmysxQnXma5HMa6h": {
+    "user_id": 7229194724,
+    "nickname": "https://www.olx.ua/list/user/5bSRO/",
+    "description": "https://www.olx.ua/d/obyavlenie/budinok-na-berez-rchki-spokyne-mstse-chan-velika-teritorya-IDYY4jq.html",
+    "balances": {
+      "TRX": {
+        "amount": "3.396799",
+        "contract_address": null,
+        "usd_value": null
+      },
+      "TOKEN_TF6f9y": {
+        "amount": "0.292292",
+        "contract_address": "TF6f9yCXxGSpySRGv59eTyzWGVtKCd8oa7",
+        "usd_value": null
+      },
+      "TOKEN_TLQJuG": {
+        "amount": "499999.888000",
+        "contract_address": "TLQJuGoiDjDnNT4Yjd6rAU9CZB6PFnjzvR",
+        "usd_value": null
+      },
+      "TOKEN_TFefZs": {
+        "amount": "70941.000000",
+        "contract_address": "TFefZs7uDTW2hnWAzJA3xxSVjWKJdbiG9e",
+        "usd_value": null
+      }
+    },
+    "total_usd_value": "0",
+    "last_checked": "2025-12-19T22:41:23.579769",
+    "last_balance_check": "2025-12-19T22:41:24.604929",
+    "last_transaction": "68041162f37ab2309865d0dd8d82d18d7390a551a48bc8b2ce9f0f50a05e76c5"
+  },
+  "TEhC8CGaRZHPjRsP8swABqJtZVtvGfEvUW": {
+    "user_id": 7229194724,
+    "nickname": "https://www.olx.ua/list/user/uBUC7/",
+    "description": "https://www.olx.ua/d/obyavlenie/pzhama-victorias-secret-satinova-leopardova-xsxl-orignal-opt-IDZynFI.html",
+    "balances": {
+      "TRX": {
+        "amount": "0.000001",
+        "contract_address": null,
+        "usd_value": null
+      },
+      "TOKEN_TF6f9y": {
+        "amount": "0.292292",
+        "contract_address": "TF6f9yCXxGSpySRGv59eTyzWGVtKCd8oa7",
+        "usd_value": null
+      }
+    },
+    "total_usd_value": "0",
+    "last_checked": "2025-12-19T22:42:19.063034",
+    "last_balance_check": "2025-12-19T23:16:08.637796",
+    "last_transaction": "ea80b848a6c1bd3025d946d3064994d6d6675128b41e0bca3ac6da3ce86b891b"
   }
 }
