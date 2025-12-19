@@ -20,7 +20,18 @@ from telegram.ext import (
 )
 from telegram.constants import ParseMode
 from telegram.helpers import escape_markdown
-
+import os
+from datetime import timezone
+import pytz
+TIMEZONE_STR = os.getenv('BOT_TIMEZONE', 'Europe/Kiev')
+try:
+    LOCAL_TIMEZONE = timezone(TIMEZONE_STR)
+except:
+    try:
+        LOCAL_TIMEZONE = pytz.timezone(TIMEZONE_STR)
+    except:
+        LOCAL_TIMEZONE = timezone.utc  
+        logger.warning(f"Не удалось установить часовой пояс '{TIMEZONE_STR}', используется UTC")
 def safe_markdown(text: str) -> str:
     if not text:
         return ""
@@ -1124,7 +1135,6 @@ class WalletTracker:
                     logger.info(f"📦 Использую кэшированные транзакции для {address[:10]}...")
                     return cached_txs
             url = f"{TRON_NETWORK}/v1/accounts/{address}/transactions"
-            from datetime import timezone
             current_time_utc = datetime.now(timezone.utc)
             min_timestamp_ms = int((current_time_utc.timestamp() - hours * 3600) * 1000)
             params = {
@@ -1143,10 +1153,16 @@ class WalletTracker:
                         if transactions:
                             oldest_tx = min(transactions, key=lambda x: x.get('block_timestamp', 0))
                             newest_tx = max(transactions, key=lambda x: x.get('block_timestamp', 0))
-                            oldest_time = datetime.fromtimestamp(oldest_tx.get('block_timestamp', 0)/1000)
-                            newest_time = datetime.fromtimestamp(newest_tx.get('block_timestamp', 0)/1000)
-                            logger.info(f"📊 Получено {len(transactions)} транзакций для {address[:10]}...")
-                            logger.info(f"📅 Диапазон времени транзакций: {oldest_time.strftime('%Y-%m-%d %H:%M:%S')} - {newest_time.strftime('%Y-%m-%d %H:%M:%S')}")
+                            oldest_utc = datetime.fromtimestamp(oldest_tx.get('block_timestamp', 0)/1000, tz=timezone.utc)
+                            newest_utc = datetime.fromtimestamp(newest_tx.get('block_timestamp', 0)/1000, tz=timezone.utc)
+                            try:
+                                oldest_local = oldest_utc.astimezone(LOCAL_TIMEZONE)
+                                newest_local = newest_utc.astimezone(LOCAL_TIMEZONE)
+                                logger.info(f"📊 Получено {len(transactions)} транзакций для {address[:10]}...")
+                                logger.info(f"📅 Диапазон времени транзакций (локальное время): {oldest_local.strftime('%Y-%m-%d %H:%M:%S')} - {newest_local.strftime('%Y-%m-%d %H:%M:%S')}")
+                            except:
+                                logger.info(f"📊 Получено {len(transactions)} транзакций для {address[:10]}...")
+                                logger.info(f"📅 Диапазон времени транзакций (UTC): {oldest_utc.strftime('%Y-%m-%d %H:%M:%S')} - {newest_utc.strftime('%Y-%m-%d %H:%M:%S')}")
                         else:
                             logger.info(f"📭 Нет транзакций для {address[:10]}... за последние {hours} часов")
                         detailed_txs = []
@@ -1216,11 +1232,17 @@ class WalletTracker:
             timestamp = raw_data.get('timestamp', 0)
             if timestamp == 0:
                 timestamp = tx.get('block_timestamp', 0)
-            dt = datetime.fromtimestamp(timestamp / 1000)
+            from datetime import timezone
+            utc_dt = datetime.fromtimestamp(timestamp / 1000, tz=timezone.utc)
+            try:
+                local_dt = utc_dt.astimezone(LOCAL_TIMEZONE)
+            except:
+                local_dt = utc_dt
+            time_str = local_dt.strftime("%d.%m.%Y %H:%M:%S")
             result = {
                 'tx_id': tx_id,
                 'timestamp': timestamp,
-                'time_str': dt.strftime("%d.%m.%Y %H:%M:%S"),
+                'time_str': time_str,  # Теперь локальное время
                 'confirmed': True if tx.get('ret', [{}])[0].get('contractRet') == 'SUCCESS' else False,
                 'type': contract_type,
                 'direction': 'INCOMING' if is_incoming else 'OUTGOING',
@@ -1665,7 +1687,7 @@ class TransactionMonitor:
             await self.application.bot.send_message(
                 chat_id=wallet.user_id,
                 text=notification_text,
-                parse_mode=ParseMode.HTML,  # Изменено с MARKDOWN на HTML
+                parse_mode=ParseMode.HTML,
                 disable_web_page_preview=True
             )
             logger.info(f"📤 Отправлено уведомление пользователю {wallet.user_id} о транзакции {transaction['tx_id'][:10]}...")
