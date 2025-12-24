@@ -186,7 +186,9 @@ def detect_wallet_network(address: str) -> str:
         except:
             pass
     if address.startswith('0x') and len(address) == 42:
-        return "ETHEREUM"
+        import re
+        if re.match(r'^0x[0-9a-fA-F]{40}$', address):
+            return "ETHEREUM"
     return "UNKNOWN"
 def get_network_emoji(network: str) -> str:
     emoji_map = {
@@ -1360,7 +1362,7 @@ class WalletTracker:
                 return None
             if data_hex.startswith('0x'):
                 data_hex = data_hex[2:]
-            if len(data_hex) < 138:  # transfer: 8 (method) + 64 (address + amount)
+            if len(data_hex) < 10:  # Минимальная длина для любого метода
                 logger.debug(f"Недостаточно данных для декодирования TRC20: {data_hex}")
                 return None
             data_hex = data_hex.lower()
@@ -1369,20 +1371,15 @@ class WalletTracker:
             token_info = await self.get_token_info(contract_address)
             decimals = token_info.get('decimals', 6)
             symbol = token_info.get('symbol', f"TOKEN_{contract_address[:6]}")
-            if method_id == 'a9059cbb':  # transfer
+            if method_id == 'a9059cbb':  # transfer(address,uint256)
                 logger.debug(f"Найден метод transfer для {symbol}")
-                if len(data_hex) < 72:
-                    logger.warning(f"Недостаточно данных для адреса в transfer: {len(data_hex)} символов")
+                if len(data_hex) < 136:
+                    logger.warning(f"Недостаточно данных для transfer: {len(data_hex)} символов, нужно 136")
                     return None
-                to_address_hex = data_hex[8:72]
+                to_address_hex = data_hex[8:72]  # 32 байта = 64 hex символа
                 to_address_hex = to_address_hex.lstrip('0')
                 if len(to_address_hex) < 40:
                     to_address_hex = '0' * (40 - len(to_address_hex)) + to_address_hex
-                elif len(to_address_hex) > 40:
-                    to_address_hex = to_address_hex[-40:]
-                if len(data_hex) < 136:
-                    logger.warning(f"Недостаточно данных для суммы в transfer: {len(data_hex)} символов")
-                    return None
                 amount_hex = data_hex[72:136]
                 if not amount_hex or all(c == '0' for c in amount_hex):
                     logger.warning(f"Пустая сумма в транзакции: {amount_hex}")
@@ -1402,24 +1399,20 @@ class WalletTracker:
                     'to_address': to_address,
                     'method': 'transfer'
                 }
-            elif method_id == '23b872dd': 
+            elif method_id == '23b872dd':  
                 logger.debug(f"Найден метод transferFrom для {symbol}")
-                if len(data_hex) < 202:
+                if len(data_hex) < 200:
                     logger.warning(f"Недостаточно данных для transferFrom: {len(data_hex)} символов")
                     return None
                 from_address_hex = data_hex[8:72]
+                to_address_hex = data_hex[72:136]
+                amount_hex = data_hex[136:200]
                 from_address_hex = from_address_hex.lstrip('0')
                 if len(from_address_hex) < 40:
                     from_address_hex = '0' * (40 - len(from_address_hex)) + from_address_hex
-                elif len(from_address_hex) > 40:
-                    from_address_hex = from_address_hex[-40:]
-                to_address_hex = data_hex[72:136]
                 to_address_hex = to_address_hex.lstrip('0')
                 if len(to_address_hex) < 40:
                     to_address_hex = '0' * (40 - len(to_address_hex)) + to_address_hex
-                elif len(to_address_hex) > 40:
-                    to_address_hex = to_address_hex[-40:]
-                amount_hex = data_hex[136:200]
                 if not amount_hex or all(c == '0' for c in amount_hex):
                     logger.warning(f"Пустая сумма в transferFrom: {amount_hex}")
                     return None
@@ -1429,8 +1422,8 @@ class WalletTracker:
                     logger.warning(f"Неверный hex для суммы {amount_hex}: {e}")
                     return None
                 amount = Decimal(str(raw_amount)) / Decimal(f"1e{decimals}")
-                to_address = self._hex_to_base58(to_address_hex)
                 from_address = self._hex_to_base58(from_address_hex)
+                to_address = self._hex_to_base58(to_address_hex)
                 logger.info(f"✅ Успешно декодирован transferFrom: {from_address} → {to_address}, {amount} {symbol}")
                 return {
                     'symbol': symbol,
@@ -1442,17 +1435,6 @@ class WalletTracker:
                 }
             else:
                 logger.info(f"Неизвестный метод TRC20: {method_id} для контракта {contract_address}")
-                known_methods = {
-                    '095ea7b3': 'approve',
-                    '70a08231': 'balanceOf',
-                    'dd62ed3e': 'allowance',
-                    '18160ddd': 'totalSupply',
-                    '06fdde03': 'name',
-                    '95d89b41': 'symbol',
-                    '313ce567': 'decimals'
-                }
-                if method_id in known_methods:
-                    logger.info(f"Известный метод {known_methods[method_id]}, но не относящийся к переводу")
                 return {
                     'symbol': symbol,
                     'amount': Decimal('0'),
@@ -1462,7 +1444,6 @@ class WalletTracker:
                 }
         except Exception as e:
             logger.error(f"❌ Критическая ошибка декодирования TRC20 данных: {e}")
-            logger.debug(f"Данные для дебага: contract={contract_address}, data_hex={data_hex[:200]}")
             import traceback
             logger.debug(f"Трассировка: {traceback.format_exc()}")
             return None
@@ -1626,52 +1607,227 @@ class TransactionMonitor:
             logger.error(f"Ошибка отправки уведомления для {wallet.address}: {e}")
             return False
     async def check_all_transactions(self, context: ContextTypes.DEFAULT_TYPE):
+        if not getattr(self, 'running', True):
+            logger.info("⏸️ Мониторинг остановлен, проверка отменена")
+            return
         if not self.tracker.tracked_wallets:
             logger.info("📭 Нет отслеживаемых кошельков для проверки")
             return
         total_wallets = len(self.tracker.tracked_wallets)
-        logger.info(f"🔍 Начинаю проверку транзакций для {total_wallets} кошельков")
+        logger.info(f"🔍 Начинаю проверку транзакций за 24 часа для {total_wallets} кошельков")
         checked_count = 0
+        new_transactions_count = 0
         sent_notifications = 0
         errors = 0
-        self.tracker._transactions_cache.clear()
+        wallets_to_save = []
         for i, (address, wallet) in enumerate(list(self.tracker.tracked_wallets.items())):
             try:
-                logger.info(f"📝 Проверяю кошелек {i+1}/{total_wallets}: {wallet.nickname} ({address[:8]}...)")
-                transactions = await self.tracker.check_recent_transactions(address, hours=48)
+                if not getattr(self, 'running', True):
+                    logger.info("⏸️ Мониторинг остановлен во время проверки")
+                    break
+                logger.info(f"📝 Проверяю кошелек {i+1}/{total_wallets}: {wallet.nickname} ({address[:8]}...), сеть: {wallet.network}")
+                transactions = []
+                if wallet.network == "TRON":
+                    try:
+                        transactions = await asyncio.wait_for(
+                            self.tracker.check_recent_transactions(address, hours=24),
+                            timeout=30.0
+                        )
+                    except asyncio.TimeoutError:
+                        logger.warning(f"⏱️ Таймаут при проверке TRON кошелька {wallet.nickname}")
+                        errors += 1
+                        continue
+                    except Exception as e:
+                        logger.error(f"❌ Ошибка запроса TRON для {wallet.nickname}: {e}")
+                        errors += 1
+                        continue
+                elif wallet.network == "SOLANA":
+                    try:
+                        transactions = await asyncio.wait_for(
+                            self.tracker.get_solana_transactions(address, limit=50),
+                            timeout=30.0
+                        )
+                    except asyncio.TimeoutError:
+                        logger.warning(f"⏱️ Таймаут при проверке Solana кошелька {wallet.nickname}")
+                        errors += 1
+                        continue
+                    except Exception as e:
+                        logger.error(f"❌ Ошибка запроса Solana для {wallet.nickname}: {e}")
+                        errors += 1
+                        continue
+                elif wallet.network == "ETHEREUM":
+                    logger.info(f"⚠️ Ethereum пока не поддерживается для {wallet.nickname}")
+                    checked_count += 1
+                    continue
+                else:
+                    logger.warning(f"❓ Неизвестная сеть {wallet.network} для {wallet.nickname}")
+                    checked_count += 1
+                    continue
+                new_txs_for_wallet = []
                 if transactions:
                     transactions.sort(key=lambda x: x.get('timestamp', 0), reverse=True)
-                    latest_tx = transactions[0]
-                    latest_tx_id = latest_tx.get('tx_id')
-                    if wallet.last_transaction != latest_tx_id:
-                        logger.info(f"📤 Найдена новая транзакция для {wallet.nickname}")
-                        logger.info(f"   TXID: {latest_tx_id[:12]}...")
-                        wallet.last_transaction = latest_tx_id
+                    for tx in transactions:
+                        tx_id = tx.get('tx_id')
+                        if not wallet.last_transaction or tx_id != wallet.last_transaction:
+                            new_txs_for_wallet.append(tx)
+                        else:
+                            break
+                    if new_txs_for_wallet:
+                        logger.info(f"📤 Найдено {len(new_txs_for_wallet)} новых транзакций для {wallet.nickname}")
+                        wallet.last_transaction = new_txs_for_wallet[0].get('tx_id')
                         wallet.last_checked = datetime.now()
-                        self.tracker.save_wallets()
-                        sent = await self.send_status_report(wallet)
-                        if sent:
+                        wallets_to_save.append(address)
+                        new_transactions_count += len(new_txs_for_wallet)
+                        try:
+                            success = await self.tracker.update_wallet_balances(wallet.address)
+                            if not success:
+                                logger.warning(f"⚠️ Не удалось обновить балансы для {wallet.nickname}")
+                            await asyncio.wait_for(
+                                self.send_multiple_transactions_notification(wallet, new_txs_for_wallet),
+                                timeout=30.0
+                            )
                             sent_notifications += 1
-                        await self.send_transaction_notification(wallet, latest_tx)
-                        wallet.last_transaction = latest_tx_id
-                        wallet.last_checked = datetime.now()
-                        self.tracker.save_wallets() 
-                        sent_notifications += 1
-                        found_count = len(transactions)
-                        logger.info(f"✅ Отправлено уведомление. Найдено транзакций: {found_count}")
+                        except asyncio.TimeoutError:
+                            logger.warning(f"⏱️ Таймаут отправки уведомления для {wallet.nickname}")
+                        except Exception as e:
+                            logger.error(f"❌ Ошибка отправки уведомления: {e}")
+                        logger.info(f"✅ Обработано новых транзакций: {len(new_txs_for_wallet)}")
                     else:
                         logger.info(f"📭 Для кошелька {wallet.nickname} нет новых транзакций")
-                        await self.send_transaction_notification(wallet, latest_tx)
                 else:
-                    logger.info(f"📭 Для кошелька {wallet.nickname} транзакций не найдено за 48 часов")
+                    logger.info(f"📭 Для кошелька {wallet.nickname} транзакций не найдено за 24 часа")
                 checked_count += 1
-                await asyncio.sleep(1) 
+                await asyncio.sleep(1)  
             except Exception as e:
                 errors += 1
                 logger.error(f"❌ Ошибка при проверке транзакций для {address}: {e}", exc_info=True)
                 continue
+        if wallets_to_save:
+            try:
+                self.tracker.save_wallets()
+                logger.info(f"💾 Сохранены изменения для {len(wallets_to_save)} кошельков")
+            except Exception as e:
+                logger.error(f"❌ Ошибка сохранения данных: {e}")
+        
         logger.info(f"✅ Проверка завершена: {checked_count}/{total_wallets} кошельков, "
+                    f"найдено новых транзакций: {new_transactions_count}, "
                     f"отправлено уведомлений: {sent_notifications}, ошибок: {errors}")
+    async def send_multiple_transactions_notification(self, wallet: TrackedWallet, transactions: List[Dict]):
+        try:
+            await self.tracker.update_wallet_balances(wallet.address)
+            message = self.format_multiple_transactions_message(wallet, transactions)
+            balance_summary = self.tracker.get_wallet_balance_summary(wallet)
+            current_time = datetime.now().strftime("%d.%m.%Y %H:%M:%S")
+            notification_text = (
+                f"{message}\n"
+                f"\n<b>💰 Текущие балансы:</b>\n"
+                f"{balance_summary}\n"
+                f"<b>⏰ Проверено:</b> {current_time}"
+            )
+            await self.application.bot.send_message(
+                chat_id=wallet.user_id,
+                text=notification_text,
+                parse_mode=ParseMode.HTML,
+                disable_web_page_preview=True
+            )
+            logger.info(f"📤 Отправлено уведомление о {len(transactions)} транзакциях для кошелька {wallet.nickname}")
+        except Exception as e:
+            logger.error(f"Ошибка отправки уведомления о нескольких транзакциях: {e}")
+    def format_multiple_transactions_message(self, wallet: TrackedWallet, transactions: List[Dict]) -> str:
+        if not transactions:
+            return "Нет новых транзакций"
+        network = wallet.network
+        network_emoji = get_network_emoji(network)
+        incoming_txs = [tx for tx in transactions if tx.get('direction') == 'INCOMING']
+        outgoing_txs = [tx for tx in transactions if tx.get('direction') == 'OUTGOING']
+        message_lines = []
+        if len(transactions) == 1:
+            return self.format_transaction_message(transactions[0], wallet)
+        else:
+            message_lines.append(f"<b>🔔 Обнаружены новые транзакции</b>")
+            message_lines.append(f"{network_emoji} <b>Кошелек:</b> {wallet.nickname}")
+            message_lines.append(f"📍 <b>Адрес:</b> <code>{wallet.address}</code>")
+            message_lines.append(f"📊 <b>Найдено транзакций:</b> {len(transactions)}")
+            total_incoming = sum(tx.get('token_amount', Decimal('0')) for tx in incoming_txs)
+            total_outgoing = sum(tx.get('token_amount', Decimal('0')) for tx in outgoing_txs)
+            if incoming_txs:
+                incoming_symbols = set(tx.get('token_symbol', '') for tx in incoming_txs)
+                symbols_text = ', '.join(incoming_symbols) if incoming_symbols else 'разных токенов'
+                message_lines.append(f"\n<b>⬇️ Получено {len(incoming_txs)} транзакций ({symbols_text}):</b>")
+                for i, tx in enumerate(incoming_txs[:3], 1):  
+                    amount = tx.get('token_amount', Decimal('0'))
+                    symbol = tx.get('token_symbol', '')
+                    time_str = tx.get('time_str', '')
+                    if symbol in ['USDT', 'USDC']:
+                        amount_str = f"{amount:,.2f}"
+                    elif symbol == 'TRX':
+                        amount_str = f"{amount:,.6f}"
+                    else:
+                        amount_str = f"{amount:,.4f}"
+                    message_lines.append(f"{i}. {time_str}: {amount_str} {symbol}")
+                if len(incoming_txs) > 3:
+                    message_lines.append(f"... и еще {len(incoming_txs) - 3} транзакций")
+            if outgoing_txs:
+                outgoing_symbols = set(tx.get('token_symbol', '') for tx in outgoing_txs)
+                symbols_text = ', '.join(outgoing_symbols) if outgoing_symbols else 'разных токенов'
+                message_lines.append(f"\n<b>⬆️ Отправлено {len(outgoing_txs)} транзакций ({symbols_text}):</b>")
+                for i, tx in enumerate(outgoing_txs[:3], 1):
+                    amount = tx.get('token_amount', Decimal('0'))
+                    symbol = tx.get('token_symbol', '')
+                    time_str = tx.get('time_str', '')
+                    if symbol in ['USDT', 'USDC']:
+                        amount_str = f"{amount:,.2f}"
+                    elif symbol == 'TRX':
+                        amount_str = f"{amount:,.6f}"
+                    else:
+                        amount_str = f"{amount:,.4f}"
+                    message_lines.append(f"{i}. {time_str}: {amount_str} {symbol}")
+                if len(outgoing_txs) > 3:
+                    message_lines.append(f"... и еще {len(outgoing_txs) - 3} транзакций")
+            message_lines.append(f"\n<b>📊 Итого за 24 часа:</b>")
+            if total_incoming > Decimal('0'):
+                if len(incoming_symbols) == 1:
+                    symbol = next(iter(incoming_symbols))
+                    if symbol in ['USDT', 'USDC']:
+                        amount_str = f"{total_incoming:,.2f}"
+                    elif symbol == 'TRX':
+                        amount_str = f"{total_incoming:,.6f}"
+                    else:
+                        amount_str = f"{total_incoming:,.4f}"
+                    message_lines.append(f"📈 Получено: {amount_str} {symbol}")
+                else:
+                    message_lines.append(f"📈 Получено: {len(incoming_txs)} транзакций")
+            if total_outgoing > Decimal('0'):
+                if len(outgoing_symbols) == 1:
+                    symbol = next(iter(outgoing_symbols))
+                    if symbol in ['USDT', 'USDC']:
+                        amount_str = f"{total_outgoing:,.2f}"
+                    elif symbol == 'TRX':
+                        amount_str = f"{total_outgoing:,.6f}"
+                    else:
+                        amount_str = f"{total_outgoing:,.4f}"
+                    message_lines.append(f"📉 Отправлено: {amount_str} {symbol}")
+                else:
+                    message_lines.append(f"📉 Отправлено: {len(outgoing_txs)} транзакций")
+            if network == "TRON":
+                explorer_link = f"https://tronscan.org/#/address/{wallet.address}"
+                message_lines.append(f"\n🔗 <a href='{explorer_link}'>Посмотреть все транзакции в TronScan</a>")
+            elif network == "SOLANA":
+                explorer_link = f"https://solscan.io/account/{wallet.address}"
+                message_lines.append(f"\n🔗 <a href='{explorer_link}'>Посмотреть все транзакции в Solscan</a>")
+        return "\n".join(message_lines)
+    async def get_new_transactions_since(self, address: str, last_tx_id: str = None, hours: int = 24) -> List[Dict]:
+        try:
+            all_transactions = await self.check_recent_transactions(address, hours=hours)
+            if not all_transactions or not last_tx_id:
+                return all_transactions or []
+            for i, tx in enumerate(all_transactions):
+                if tx.get('tx_id') == last_tx_id:
+                    return all_transactions[:i]
+            return all_transactions
+        except Exception as e:
+            logger.error(f"Ошибка получения новых транзакций для {address}: {e}")
+            return []
     async def send_transaction_notification(self, wallet: TrackedWallet, transaction: Dict):
         try:
             await self.tracker.update_wallet_balances(wallet.address)

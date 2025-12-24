@@ -145,7 +145,7 @@
     "description": null,
     "balances": {
       "TRX": {
-        "amount": "6.082449",
+        "amount": "5.047478",
         "contract_address": null,
         "usd_value": null
       },
@@ -155,15 +155,15 @@
         "usd_value": null
       },
       "USDT": {
-        "amount": "8350.000000",
+        "amount": "16515.000000",
         "contract_address": "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
         "usd_value": null
       }
     },
     "total_usd_value": "0",
-    "last_checked": "2025-12-19T22:06:08.507313",
-    "last_balance_check": "2025-12-20T01:06:37.035864",
-    "last_transaction": "d43ead190713e4f0ed13dc1b19a46bc4d63c6da7810b8762d1aaff23eb5e04e1"
+    "last_checked": "2025-12-24T21:08:19.330768",
+    "last_balance_check": "2025-12-24T21:08:20.076485",
+    "last_transaction": "1b5c989bc527bed887d00d2033cf43ea4c0ed451cbef87f3ac505644b77c5ea0"
   },
   "TVpHC1sgZAjR37KLUHi5g5yuLzsUeU19Sa": {
     "user_id": 7229194724,
@@ -213,7 +213,7 @@
     "description": "https://www.olx.ua/d/obyavlenie/budinok-na-berez-rchki-spokyne-mstse-chan-velika-teritorya-IDYY4jq.html",
     "balances": {
       "TRX": {
-        "amount": "3.396799",
+        "amount": "5.431807",
         "contract_address": null,
         "usd_value": null
       },
@@ -234,9 +234,9 @@
       }
     },
     "total_usd_value": "0",
-    "last_checked": "2025-12-19T22:41:23.579769",
-    "last_balance_check": "2025-12-19T22:41:24.604929",
-    "last_transaction": "68041162f37ab2309865d0dd8d82d18d7390a551a48bc8b2ce9f0f50a05e76c5"
+    "last_checked": "2025-12-24T21:38:29.666377",
+    "last_balance_check": "2025-12-24T21:38:30.525699",
+    "last_transaction": "856e1d2aa749597c41539fbd76c8e37a240b4300cb6e97a08325ed1ff94ad929"
   },
   "TEhC8CGaRZHPjRsP8swABqJtZVtvGfEvUW": {
     "user_id": 7229194724,
