@@ -204,8 +204,8 @@ class WalletBalance:
     amount: Decimal
     contract_address: Optional[str] = None
     usd_value: Optional[Decimal] = None
-    network: str = "TRON"  # Добавляем поле для сети
-    mint_address: Optional[str] = None  # Для Solana SPL токенов
+    network: str = "TRON" 
+    mint_address: Optional[str] = None 
     def format_amount(self) -> str:
         try:
             if self.symbol in ['TRX', 'SOL', 'ETH']:
@@ -232,7 +232,7 @@ class TrackedWallet:
     address: str
     user_id: int
     nickname: str
-    network: str = "TRON"  # Добавляем поле для сети (TRON, SOLANA)
+    network: str = "TRON"  
     description: Optional[str] = None
     balances: Dict[str, WalletBalance] = field(default_factory=dict)
     total_usd_value: Decimal = Decimal('0')
@@ -243,7 +243,7 @@ class WalletTracker:
     def __init__(self):
         self.tracked_wallets: Dict[str, TrackedWallet] = {}
         self._transactions_cache: Dict[str, List[Dict]] = {}
-        self._unknown_tokens_cache: Dict[str, Dict] = {}  # Добавьте эту строку
+        self._unknown_tokens_cache: Dict[str, Dict] = {} 
         self.solana_client = Client(SOLANA_RPC_URL)
         self.load_wallets()
     async def classify_tron_wallet(self, address: str) -> dict:
@@ -276,39 +276,32 @@ class WalletTracker:
                     unique_senders.add(sender)
                 if receiver:
                     unique_receivers.add(receiver)
-                # Считаем USDT транзакции
                 if tx.get('token_symbol') == 'USDT' or 'USDT' in str(tx.get('token_symbol', '')).upper():
                     usdt_txs += 1
-                # Суммы TRX
                 if tx.get('token_symbol') == 'TRX':
                     if tx.get('direction') == 'INCOMING':
                         trx_incoming += tx.get('token_amount', Decimal('0'))
                     elif tx.get('direction') == 'OUTGOING':
                         trx_outgoing += tx.get('token_amount', Decimal('0'))
-            # Определяем общие категории
             total_contacts = len(unique_senders) + len(unique_receivers)
-            # Биржевой кошелёк
             if (tx_count > 100 and total_contacts > 50) or usdt_txs > 20:
                 return {
                     "type": "exchange",
                     "name": "Возможно биржевой кошелёк",
                     "confidence": min(0.95, 0.7 + min(tx_count/1000, 0.25))
                 }
-            # Активный (горячий) кошелёк
             if tx_count > 10 or usdt_txs > 3:
                 return {
                     "type": "hot",
                     "name": "Активный кошелёк",
                     "confidence": min(0.9, 0.6 + min(tx_count/100, 0.3))
                 }
-            # Неактивный кошелёк
             if tx_count <= 3:
                 return {
                     "type": "cold",
                     "name": "Малоактивный кошелёк",
                     "confidence": 0.75
                 }
-            # По умолчанию
             wallet_type = "hot" if tx_count > 5 else "cold"
             return {
                 "type": wallet_type,
@@ -515,33 +508,45 @@ class WalletTracker:
             self.save_wallets()
     def add_wallet(self, address: str, user_id: int, nickname: str, 
                 description: str = None, network: str = "TRON") -> TrackedWallet:
+        async def get_initial_last_tx():
+            try:
+                last_tx = await self.get_last_transaction(address, hours=720)
+                return last_tx.get('tx_id') if last_tx else None
+            except Exception as e:
+                logger.error(f"Ошибка при поиске последней транзакции: {e}")
+                return None
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                asyncio.create_task(self._initialize_last_transaction(address))
+                initial_last_tx = None
+            else:
+                initial_last_tx = loop.run_until_complete(get_initial_last_tx())
+        except:
+            initial_last_tx = None
         wallet = TrackedWallet(
             address=address,
             user_id=user_id,
             nickname=nickname,
-            network=network,  
+            network=network,
             description=description,
             last_checked=datetime.now(),
-            last_balance_check=datetime.now()
+            last_balance_check=datetime.now(),
+            last_transaction=initial_last_tx  
         )
         self.tracked_wallets[address] = wallet
-        async def set_last_transaction():
-            try:
-                last_tx = await self.get_last_transaction(address, hours=720)
-                if last_tx:
-                    wallet.last_transaction = last_tx.get('tx_id')
-                    logger.info(f"Найдена последняя транзакция для {address}: {last_tx.get('tx_id')[:12]}")
-            except Exception as e:
-                logger.error(f"Ошибка при поиске последней транзакции: {e}")
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            asyncio.create_task(set_last_transaction())
-        else:
-            loop.run_until_complete(set_last_transaction())
         self.save_wallets()
         log_user_action(user_id, "N/A", "ADD_WALLET", f"Address: {address}, Nickname: {nickname}")
         logger.info(f"Добавлен новый кошелек: {address} для пользователя {user_id}")
         return wallet
+    async def _initialize_last_transaction(self, address: str):
+        try:
+            last_tx = await self.get_last_transaction(address, hours=720)
+            if last_tx and address in self.tracked_wallets:
+                self.tracked_wallets[address].last_transaction = last_tx.get('tx_id')
+                logger.info(f"Найдена последняя транзакция для {address}: {last_tx.get('tx_id')[:12]}")
+        except Exception as e:
+            logger.error(f"Ошибка при поиске последней транзакции: {e}")
     def save_wallets(self):
         try:
             data = {}
@@ -597,7 +602,7 @@ class WalletTracker:
                 url = f"{TRON_NETWORK}/v1/accounts/{address}"
                 logger.info(f"🔍 Попытка {attempt + 1}: запрос баланса TRX для {address}")
                 logger.info(f"📡 URL: {url}")
-                if attempt == 0:  # Только для первой попытки логируем ключ
+                if attempt == 0:  
                     logger.info(f"🔑 Используется API ключ: {TRON_API_KEY[:10]}...")
                 async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=15)) as session:
                     async with session.get(url, headers=headers) as response:
@@ -618,22 +623,22 @@ class WalletTracker:
                             logger.error(f"❌ Адрес {address} не найден в сети TRON")
                             raise ValueError("Адрес не существует")
                         elif response.status == 429:
-                            wait_time = (attempt + 1) * 5  # Экспоненциальная задержка: 5, 10, 15 секунд
+                            wait_time = (attempt + 1) * 5  
                             logger.warning(f"⚠️ Превышен лимит запросов к TronGrid API")
                             logger.warning(f"⏱️ Жду {wait_time} секунд перед повторной попыткой...")
                             await asyncio.sleep(wait_time)
-                            continue  # Пробуем снова
+                            continue  
                         elif response.status >= 500:
-                            wait_time = (attempt + 1) * 2  # Меньшая задержка для серверных ошибок
+                            wait_time = (attempt + 1) * 2 
                             logger.error(f"❌ Серверная ошибка {response.status} для {address}")
                             logger.warning(f"⏱️ Жду {wait_time} секунд перед повторной попыткой...")
                             await asyncio.sleep(wait_time)
-                            continue  # Пробуем снова
+                            continue  
                         else:
                             error_text = await response.text()
                             logger.error(f"❌ API ошибка {response.status} для {address}")
                             logger.error(f"📝 Детали ошибки: {error_text[:200]}")
-                            break  # Для других ошибок прерываем попытки
+                            break  
             except asyncio.TimeoutError:
                 logger.error(f"⏱️ Таймаут при запросе баланса для {address} (попытка {attempt + 1})")
                 if attempt < max_retries - 1:
@@ -643,7 +648,7 @@ class WalletTracker:
                     continue
             except ValueError as e:
                 logger.error(f"❌ Критическая ошибка: {e}")
-                raise e  # Пробрасываем критические ошибки дальше
+                raise e 
             except Exception as e:
                 logger.error(f"❌ Ошибка получения TRX баланса (попытка {attempt + 1}): {e}")
                 if attempt < max_retries - 1:
@@ -721,7 +726,7 @@ class WalletTracker:
                             name = f"Token_{contract_address[:6]}"
                         if not symbol or symbol == 'Unknown':
                             symbol = f"TOKEN_{contract_address[:6]}"
-                        decimals = 6  # Значение по умолчанию для TRC20
+                        decimals = 6  
                         try:
                             abi_entries = contract_info.get('abi', {}).get('entrys', [])
                             for entry in abi_entries:
@@ -741,32 +746,26 @@ class WalletTracker:
                         if not hasattr(self, '_unknown_tokens_cache'):
                             self._unknown_tokens_cache = {}
                         self._unknown_tokens_cache[contract_address] = result
-                        
                         return result
                     elif response.status == 404:
-                        # Для токенов с 404 создаем базовую информацию
                         result = {
                             'symbol': f"TOKEN_{contract_address[:6]}",
-                            'decimals': 6,  # Предполагаем 6 decimals для TRC20
+                            'decimals': 6,  
                             'name': f"Token_{contract_address[:6]}"
                         }
-                        # Кэшируем
                         if not hasattr(self, '_unknown_tokens_cache'):
                             self._unknown_tokens_cache = {}
                         self._unknown_tokens_cache[contract_address] = result
                         logger.info(f"⚠️ Токен {contract_address} не найден, использую стандартные параметры")
                         return result
                     else:
-                        # Обработка других ошибок API
                         error_text = await response.text()
                         logger.warning(f"⚠️ API ошибка {response.status} для токена {contract_address}: {error_text[:200]}")
-                        
                         result = {
                             'symbol': f"TOKEN_{contract_address[:6]}",
                             'decimals': 6,
                             'name': f"Token_{contract_address[:6]}"
                         }
-                        # Кэшируем даже при ошибках
                         if not hasattr(self, '_unknown_tokens_cache'):
                             self._unknown_tokens_cache = {}
                         self._unknown_tokens_cache[contract_address] = result
@@ -800,7 +799,6 @@ class WalletTracker:
                             result = {}
                             trc20_list = account_data.get('trc20', [])
                             logger.info(f"📊 Найдено {len(trc20_list)} TRC20 записей для адреса {address}")
-                            # Выводим первые несколько записей для отладки
                             for i, token_entry in enumerate(trc20_list[:3]):
                                 logger.info(f"📝 Запись {i+1}: {token_entry}")
                             token_info_cache = {}
@@ -877,7 +875,7 @@ class WalletTracker:
                             error_text = await response.text()
                             logger.error(f"❌ API ошибка: {response.status} для адреса {address}")
                             logger.error(f"📝 Детали: {error_text[:200]}")
-                            if attempt == max_retries - 1:  # Последняя попытка
+                            if attempt == max_retries - 1: 
                                 break
                             else:
                                 wait_time = (attempt + 1) * 3
@@ -924,7 +922,6 @@ class WalletTracker:
                     balance.network = "TRON"
                     wallet.balances[token_name] = balance
             elif wallet.network == "SOLANA":
-                # Для Solana тоже можно добавить retry логику
                 sol_balance = await self.get_sol_balance(address)
                 if sol_balance > Decimal('0'):
                     wallet.balances['SOL'] = WalletBalance(
@@ -1058,7 +1055,7 @@ class WalletTracker:
                     usdc_tokens.append((symbol, balance))
                 elif symbol == 'USDT' or 'USDT' in symbol.upper():
                     usdt_tokens.append((symbol, balance))
-                elif symbol in ['RAY', 'SRM']:  # Известные SPL токены
+                elif symbol in ['RAY', 'SRM']:  
                     known_spl_tokens.append((symbol, balance))
                 else:
                     unknown_spl_tokens.append((symbol, balance))
@@ -1177,10 +1174,9 @@ class WalletTracker:
                                 logger.error(f"❌ Ошибка парсинга транзакции {tx.get('txID', '')[:12]}: {e}")
                                 continue
                         if detailed_txs:
+                            detailed_txs.sort(key=lambda x: x.get('timestamp', 0), reverse=True)
                             self._transactions_cache[cache_key] = detailed_txs
                             logger.info(f"💾 Сохранено {len(detailed_txs)} транзакций в кэш с ключом {cache_key}")
-                        detailed_txs.sort(key=lambda x: x.get('timestamp', 0), reverse=True)
-                        logger.info(f"✅ Успешно обработано {len(detailed_txs)} транзакций")
                         return detailed_txs
                     elif response.status == 429:
                         logger.warning(f"⚠️ Превышен лимит запросов для адреса {address[:10]}...")
@@ -1244,7 +1240,7 @@ class WalletTracker:
             result = {
                 'tx_id': tx_id,
                 'timestamp': timestamp,
-                'time_str': time_str,  # Теперь локальное время
+                'time_str': time_str,  
                 'confirmed': True if tx.get('ret', [{}])[0].get('contractRet') == 'SUCCESS' else False,
                 'type': contract_type,
                 'direction': 'INCOMING' if is_incoming else 'OUTGOING',
@@ -1271,7 +1267,6 @@ class WalletTracker:
             elif contract_type == 'TriggerSmartContract':
                 data_hex = parameter.get('data', '')
                 contract_address = self._to_base58(parameter.get('contract_address', ''))
-                
                 if contract_address.lower() == 'tr7nhqjekqxgtci8q8zy4pl8otszgjlj6t':
                     logger.info(f"💵 Обработка USDT транзакции")
                     logger.debug(f"USDT data_hex: {data_hex[:200]}")
@@ -1362,7 +1357,7 @@ class WalletTracker:
                 return None
             if data_hex.startswith('0x'):
                 data_hex = data_hex[2:]
-            if len(data_hex) < 10:  # Минимальная длина для любого метода
+            if len(data_hex) < 10:  
                 logger.debug(f"Недостаточно данных для декодирования TRC20: {data_hex}")
                 return None
             data_hex = data_hex.lower()
@@ -1371,12 +1366,12 @@ class WalletTracker:
             token_info = await self.get_token_info(contract_address)
             decimals = token_info.get('decimals', 6)
             symbol = token_info.get('symbol', f"TOKEN_{contract_address[:6]}")
-            if method_id == 'a9059cbb':  # transfer(address,uint256)
+            if method_id == 'a9059cbb': 
                 logger.debug(f"Найден метод transfer для {symbol}")
                 if len(data_hex) < 136:
                     logger.warning(f"Недостаточно данных для transfer: {len(data_hex)} символов, нужно 136")
                     return None
-                to_address_hex = data_hex[8:72]  # 32 байта = 64 hex символа
+                to_address_hex = data_hex[8:72]  
                 to_address_hex = to_address_hex.lstrip('0')
                 if len(to_address_hex) < 40:
                     to_address_hex = '0' * (40 - len(to_address_hex)) + to_address_hex
@@ -1655,23 +1650,19 @@ class TransactionMonitor:
                         logger.error(f"❌ Ошибка запроса Solana для {wallet.nickname}: {e}")
                         errors += 1
                         continue
-                elif wallet.network == "ETHEREUM":
-                    logger.info(f"⚠️ Ethereum пока не поддерживается для {wallet.nickname}")
-                    checked_count += 1
-                    continue
-                else:
-                    logger.warning(f"❓ Неизвестная сеть {wallet.network} для {wallet.nickname}")
-                    checked_count += 1
-                    continue
-                new_txs_for_wallet = []
                 if transactions:
                     transactions.sort(key=lambda x: x.get('timestamp', 0), reverse=True)
-                    for tx in transactions:
-                        tx_id = tx.get('tx_id')
-                        if not wallet.last_transaction or tx_id != wallet.last_transaction:
-                            new_txs_for_wallet.append(tx)
-                        else:
-                            break
+                    new_txs_for_wallet = []
+                    if wallet.last_transaction:
+                        for tx in transactions:
+                            tx_id = tx.get('tx_id')
+                            if tx_id != wallet.last_transaction:
+                                new_txs_for_wallet.append(tx)
+                            else:
+                                break
+                    else:
+                        if transactions:
+                            new_txs_for_wallet = [transactions[0]]
                     if new_txs_for_wallet:
                         logger.info(f"📤 Найдено {len(new_txs_for_wallet)} новых транзакций для {wallet.nickname}")
                         wallet.last_transaction = new_txs_for_wallet[0].get('tx_id')
@@ -1691,6 +1682,7 @@ class TransactionMonitor:
                             logger.warning(f"⏱️ Таймаут отправки уведомления для {wallet.nickname}")
                         except Exception as e:
                             logger.error(f"❌ Ошибка отправки уведомления: {e}")
+                        
                         logger.info(f"✅ Обработано новых транзакций: {len(new_txs_for_wallet)}")
                     else:
                         logger.info(f"📭 Для кошелька {wallet.nickname} нет новых транзакций")
@@ -1959,7 +1951,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 • USDT, USDC, TUSD (стабильные монеты)
 • JUST, BTT, WIN и другие TRC20 токены
 """
-
     await update.message.reply_text(welcome_text)
 async def add_wallet_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
@@ -2107,7 +2098,7 @@ async def add_wallet_nickname(update: Update, context: ContextTypes.DEFAULT_TYPE
     wallet = tracker.add_wallet(
         address=address,
         user_id=user.id,
-        nickname=clean_nickname,  # Используем clean_nickname вместо nickname
+        nickname=clean_nickname,  
         description=None,
         network=network
     )
