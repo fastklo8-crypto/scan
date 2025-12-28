@@ -5,7 +5,7 @@ import json
 import asyncio
 import aiohttp
 from datetime import datetime
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Set
 from dataclasses import dataclass, field
 from decimal import Decimal
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
@@ -239,6 +239,8 @@ class TrackedWallet:
     last_checked: Optional[datetime] = None
     last_transaction: Optional[str] = None
     last_balance_check: Optional[datetime] = None
+    processed_tx_ids: Set[str] = field(default_factory=set)  # Новое поле
+
 class WalletTracker:
     def __init__(self):
         self.tracked_wallets: Dict[str, TrackedWallet] = {}
@@ -460,6 +462,7 @@ class WalletTracker:
                                 if usd_value_str is not None:
                                     usd_value = Decimal(str(usd_value_str))
                                     total_usd_value += usd_value
+                                
                                 balances[symbol] = WalletBalance(
                                     symbol=symbol,
                                     amount=amount,
@@ -473,6 +476,13 @@ class WalletTracker:
                     if total_usd_str is None:
                         total_usd_str = '0'
                     total_usd_value = Decimal(str(total_usd_str))
+                    processed_tx_ids = set()
+                    if 'processed_tx_ids' in wallet_data:
+                        try:
+                            processed_tx_ids = set(wallet_data['processed_tx_ids'])
+                        except Exception as e:
+                            logger.warning(f"Ошибка загрузки processed_tx_ids для {addr}: {e}")
+                            processed_tx_ids = set()
                     self.tracked_wallets[addr] = TrackedWallet(
                         address=addr,
                         user_id=user_id,
@@ -482,7 +492,8 @@ class WalletTracker:
                         total_usd_value=total_usd_value,
                         last_checked=last_checked,
                         last_transaction=wallet_data.get('last_transaction'),
-                        last_balance_check=last_balance_check
+                        last_balance_check=last_balance_check,
+                        processed_tx_ids=processed_tx_ids  
                     )
                     loaded_count += 1
                     logger.info(f"Успешно загружен кошелек {addr} для пользователя {user_id}")
@@ -507,7 +518,7 @@ class WalletTracker:
             self.tracked_wallets = {}
             self.save_wallets()
     def add_wallet(self, address: str, user_id: int, nickname: str, 
-                description: str = None, network: str = "TRON") -> TrackedWallet:
+                    description: str = None, network: str = "TRON") -> TrackedWallet:
         async def get_initial_last_tx():
             try:
                 last_tx = await self.get_last_transaction(address, hours=720)
@@ -532,7 +543,8 @@ class WalletTracker:
             description=description,
             last_checked=datetime.now(),
             last_balance_check=datetime.now(),
-            last_transaction=initial_last_tx  
+            last_transaction=initial_last_tx,
+            processed_tx_ids=set()  
         )
         self.tracked_wallets[address] = wallet
         self.save_wallets()
@@ -558,6 +570,14 @@ class WalletTracker:
                         'contract_address': balance.contract_address,
                         'usd_value': str(balance.usd_value) if balance.usd_value is not None else None
                     }
+                if hasattr(wallet, 'processed_tx_ids'):
+                    processed_ids = list(wallet.processed_tx_ids)
+                    if len(processed_ids) > 500:
+                        processed_ids = processed_ids[-500:]
+                        logger.info(f"Ограничил processed_tx_ids до 500 для {addr}")
+                else:
+                    processed_ids = []
+                
                 data[addr] = {
                     'user_id': wallet.user_id,
                     'nickname': wallet.nickname,
@@ -566,7 +586,8 @@ class WalletTracker:
                     'total_usd_value': str(wallet.total_usd_value),
                     'last_checked': wallet.last_checked.isoformat() if wallet.last_checked else None,
                     'last_balance_check': wallet.last_balance_check.isoformat() if wallet.last_balance_check else None,
-                    'last_transaction': wallet.last_transaction
+                    'last_transaction': wallet.last_transaction,
+                    'processed_tx_ids': processed_ids  # Новое поле
                 }
             with open('wallets.json', 'w', encoding='utf-8') as f:
                 json.dump(data, f, indent=2, ensure_ascii=False, default=str)
@@ -1553,13 +1574,15 @@ async def debug_tx_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 class TransactionMonitor:
     def __init__(self, application: Application, tracker: WalletTracker, 
-                 check_interval: int = 600): 
+                 check_interval: int = 600):
         self.application = application
         self.tracker = tracker
-        self.check_interval = check_interval  
+        self.check_interval = check_interval
         self.last_checked: Dict[str, datetime] = {}
         self.running = False
         self.job = None
+        if not hasattr(tracker, '_transactions_cache'):
+            tracker._transactions_cache = {}
     async def start(self):
         if self.running:
             return
@@ -1621,6 +1644,7 @@ class TransactionMonitor:
                     logger.info("⏸️ Мониторинг остановлен во время проверки")
                     break
                 logger.info(f"📝 Проверяю кошелек {i+1}/{total_wallets}: {wallet.nickname} ({address[:8]}...), сеть: {wallet.network}")
+                logger.info(f"📊 Обработано транзакций для этого кошелька: {len(wallet.processed_tx_ids)}")
                 transactions = []
                 if wallet.network == "TRON":
                     try:
@@ -1650,50 +1674,81 @@ class TransactionMonitor:
                         logger.error(f"❌ Ошибка запроса Solana для {wallet.nickname}: {e}")
                         errors += 1
                         continue
+                
                 if transactions:
+                    # Сортируем от новых к старым
                     transactions.sort(key=lambda x: x.get('timestamp', 0), reverse=True)
+                    
+                    # Определяем новые транзакции
                     new_txs_for_wallet = []
-                    if wallet.last_transaction:
-                        for tx in transactions:
-                            tx_id = tx.get('tx_id')
-                            if tx_id != wallet.last_transaction:
-                                new_txs_for_wallet.append(tx)
-                            else:
-                                break
-                    else:
-                        if transactions:
-                            new_txs_for_wallet = [transactions[0]]
+                    for tx in transactions:
+                        tx_id = tx.get('tx_id')
+                        if not tx_id:
+                            continue
+                        
+                        # Проверяем, была ли уже обработана эта транзакция
+                        if tx_id not in wallet.processed_tx_ids:
+                            new_txs_for_wallet.append(tx)
+                        else:
+                            logger.debug(f"Транзакция {tx_id[:10]}... уже обработана ранее")
+                    
                     if new_txs_for_wallet:
                         logger.info(f"📤 Найдено {len(new_txs_for_wallet)} новых транзакций для {wallet.nickname}")
+                        
+                        # Обновляем последнюю транзакцию
                         wallet.last_transaction = new_txs_for_wallet[0].get('tx_id')
+                        
+                        # Добавляем ВСЕ новые транзакции в обработанные
+                        for tx in new_txs_for_wallet:
+                            tx_id = tx.get('tx_id')
+                            if tx_id:
+                                wallet.processed_tx_ids.add(tx_id)
+                        
                         wallet.last_checked = datetime.now()
                         wallets_to_save.append(address)
                         new_transactions_count += len(new_txs_for_wallet)
+                        
                         try:
+                            # Обновляем балансы
                             success = await self.tracker.update_wallet_balances(wallet.address)
                             if not success:
                                 logger.warning(f"⚠️ Не удалось обновить балансы для {wallet.nickname}")
+                            
+                            # Отправляем уведомление
                             await asyncio.wait_for(
                                 self.send_multiple_transactions_notification(wallet, new_txs_for_wallet),
                                 timeout=30.0
                             )
                             sent_notifications += 1
+                            
                         except asyncio.TimeoutError:
                             logger.warning(f"⏱️ Таймаут отправки уведомления для {wallet.nickname}")
                         except Exception as e:
                             logger.error(f"❌ Ошибка отправки уведомления: {e}")
                         
                         logger.info(f"✅ Обработано новых транзакций: {len(new_txs_for_wallet)}")
+                        
+                        # Ограничиваем размер processed_tx_ids (оставляем последние 500)
+                        if len(wallet.processed_tx_ids) > 500:
+                            # Преобразуем в список и берем последние 500 элементов
+                            tx_list = list(wallet.processed_tx_ids)
+                            wallet.processed_tx_ids = set(tx_list[-500:])
+                            logger.info(f"📏 Ограничил processed_tx_ids до 500 для {wallet.nickname}")
+                            
                     else:
                         logger.info(f"📭 Для кошелька {wallet.nickname} нет новых транзакций")
                 else:
                     logger.info(f"📭 Для кошелька {wallet.nickname} транзакций не найдено за 24 часа")
+                
                 checked_count += 1
-                await asyncio.sleep(1)  
+                await asyncio.sleep(1)  # Задержка между проверками кошельков
+                
             except Exception as e:
                 errors += 1
                 logger.error(f"❌ Ошибка при проверке транзакций для {address}: {e}", exc_info=True)
                 continue
+        
+        # Сохраняем изменения в файл
         if wallets_to_save:
             try:
                 self.tracker.save_wallets()
@@ -1701,6 +1756,7 @@ class TransactionMonitor:
             except Exception as e:
                 logger.error(f"❌ Ошибка сохранения данных: {e}")
         
+        # Логируем итоги
         logger.info(f"✅ Проверка завершена: {checked_count}/{total_wallets} кошельков, "
                     f"найдено новых транзакций: {new_transactions_count}, "
                     f"отправлено уведомлений: {sent_notifications}, ошибок: {errors}")
